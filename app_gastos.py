@@ -7,7 +7,7 @@ st.set_page_config(page_title="Finanzas Familiares", page_icon="🏡", layout="c
 
 # --- 1. CONFIGURACIÓN DE ENLACES (RELLENA ESTO) ---
 # ID de tu hoja de Google (el que está en la URL entre /d/ y /edit)
-SHEET_ID = "Datos_gastos_familia" 
+SHEET_ID = "1C923YPTM65pFZYS8qHtFkcVZYVNkAoZ455JkjZwpwU4" 
 # ID de tu formulario (el que está en la URL de enviar entre /d/e/ y /formResponse)
 FORM_ID = "1FAIpQLSfowcz9hT3dckaDw_hJ2MRJ9eshXlM9QHXc9dbr_1hQk2yx5Q"
 
@@ -66,3 +66,4 @@ try:
     st.dataframe(df.sort_index(ascending=False), use_container_width=True)
 except:
     st.info("Aún no hay datos registrados o la hoja no es pública.")
+
