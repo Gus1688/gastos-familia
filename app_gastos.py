@@ -34,7 +34,7 @@ with st.form("nuevo_gasto_form", clear_on_submit=True):
         monto = st.number_input("Monto ($)", min_value=0.0, step=1.0, format="%.2f")
         pago = st.selectbox("Método de Pago", METODOS_PAGO)
     with col2:
-        usuario = st.radio("¿Quién pagó?", ["Esposo", "Esposa"], horizontal=True)
+        usuario = st.radio("¿Quién pagó?", ["Gustavo", "Fabiola"], horizontal=True)
         categoria = st.selectbox("Categoría", CATEGORIAS)
     
     descripcion = st.text_input("Nota")
@@ -56,3 +56,4 @@ try:
         st.dataframe(df.sort_values(by="Fecha", ascending=False), use_container_width=True)
 except:
     st.info("Conectando con la base de datos...")
+
