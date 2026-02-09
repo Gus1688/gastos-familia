@@ -5,31 +5,30 @@ from datetime import datetime
 
 st.set_page_config(page_title="Finanzas Familiares", page_icon="🏡", layout="centered")
 
-# --- 1. CONFIGURACIÓN DE ENLACES (RELLENA ESTO) ---
-# ID de tu hoja de Google (el que está en la URL entre /d/ y /edit)
+# --- 1. CONFIGURACIÓN (RELLENA ESTO) ---
 SHEET_ID = "1C923YPTM65pFZYS8qHtFkcVZYVNkAoZ455JkjZwpwU4" 
-# ID de tu formulario (el que está en la URL de enviar entre /d/e/ y /formResponse)
 FORM_ID = "1FAIpQLSfowcz9hT3dckaDw_hJ2MRJ9eshXlM9QHXc9dbr_1hQk2yx5Q"
 
-# URL para LEER los datos
+# URLs de conexión
 READ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
-# URL para ENVIAR los datos
-SUBMIT_URL = f"https://forms.google.com/forms/d/e/{FORM_ID}/formResponse"
+SUBMIT_URL = f"https://docs.google.com/forms/d/e/{FORM_ID}/formResponse"
 
 def enviar_a_google(fecha, cat, desc, monto, usuario, pago):
-    # SUSTITUYE LOS NÚMEROS POR TUS 6 CÓDIGOS ENTRY
+    # REEMPLAZA LOS NÚMEROS CON TUS 6 CÓDIGOS ENTRY
     payload = {
-        "entry.1460713451": str(fecha),   # Fecha
-        "entry.1410133594": cat,          # Categoría
-        "entry.344685481": desc,         # Descripción
-        "entry.324330457": str(monto),   # Monto
-        "entry.745504096": usuario,      # Usuario
-        "entry.437144806": pago          # Pago
+        "entry.1460713451": str(fecha),
+        "entry.1410133594": cat,
+        "entry.344685481": desc,
+        "entry.324330457": str(monto),
+        "entry.745504096": usuario,
+        "entry.437144806": pago
     }
     try:
-        r = requests.post(SUBMIT_URL, data=payload)
-        return r.status_code == 200
-    except:
+        # Usamos requests puro, sin librerías de Streamlit para evitar bloqueos
+        response = requests.post(SUBMIT_URL, data=payload)
+        return response.status_code == 200
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
         return False
 
 # --- INTERFAZ ---
@@ -50,20 +49,23 @@ with st.form("nuevo_gasto", clear_on_submit=True):
     
     if st.form_submit_button("Registrar Gasto"):
         if monto > 0:
+            # Aquí llamamos a la función que usa el Formulario
             if enviar_a_google(fecha, categoria, descripcion, monto, usuario, pago):
                 st.balloons()
-                st.success("¡Gasto guardado en la nube!")
-                st.cache_data.clear() # Refrescar tabla
+                st.success("¡Gasto guardado con éxito!")
+                st.cache_data.clear() 
             else:
-                st.error("Error al conectar con Google.")
+                st.error("No se pudo guardar. Verifica los IDs y la conexión.")
+        else:
+            st.warning("Por favor, ingresa un monto mayor a 0.")
 
-# --- MOSTRAR DATOS ---
+# --- TABLA DE DATOS (LECTURA) ---
 st.divider()
+st.subheader("Historial de Gastos")
 try:
+    # IMPORTANTE: La hoja debe estar en 'Cualquier persona con el enlace puede ver'
     df = pd.read_csv(READ_URL)
-    # Ajustamos nombres de columnas si Google Forms les puso otros
-    st.metric("Total Mes", f"${df.iloc[:, 4].sum():,.2f}") # Suma la columna del monto
-    st.dataframe(df.sort_index(ascending=False), use_container_width=True)
+    if not df.empty:
+        st.dataframe(df.sort_index(ascending=False), use_container_width=True)
 except:
-    st.info("Aún no hay datos registrados o la hoja no es pública.")
-
+    st.info("Los datos aparecerán aquí en unos segundos después de tu primer registro.")
