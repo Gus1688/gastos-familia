@@ -1,31 +1,44 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from streamlit_gsheets import GSheetsConnection
 
 st.set_page_config(page_title="Finanzas Familiares", page_icon="🏡", layout="centered")
 
-# --- CONEXIÓN A GOOGLE SHEETS ---
-# Aquí usamos el conector oficial de Streamlit para Sheets
-url = "https://docs.google.com/spreadsheets/d/1C923YPTM65pFZYS8qHtFkcVZYVNkAoZ455JkjZwpwU4/edit?gid=0#gid=0"
-
-conn = st.connection("gsheets", type=GSheetsConnection)
+# --- CONFIGURACIÓN DE LA HOJA ---
+# Asegúrate de que la URL termine en /export?format=csv o sea la URL normal
+SHEET_ID = "Datos_gastos_familia" # Instrucciones abajo
+url = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
 
 def cargar_datos():
-    return conn.read(spreadsheet=url, usecols=[0,1,2,3,4,5], ttl="0")
+    try:
+        # Lee la hoja de Google como si fuera un CSV público
+        return pd.read_csv(url)
+    except:
+        return pd.DataFrame(columns=["Fecha", "Categoría", "Descripción", "Monto", "Usuario", "Pago"])
 
 def guardar_gasto(fecha, cat, desc, monto, usuario, pago):
+    # Para guardar datos de forma gratuita y fácil sin errores de permisos, 
+    # usaremos un Google Form o una técnica de Google Apps Script.
+    # Pero para no complicarte, intentaremos la vía corregida de conexión:
     df_existente = cargar_datos()
     nuevo_gasto = pd.DataFrame([[str(fecha), cat, desc, monto, usuario, pago]], 
                                 columns=["Fecha", "Categoría", "Descripción", "Monto", "Usuario", "Pago"])
     df_final = pd.concat([df_existente, nuevo_gasto], ignore_index=True)
-    conn.update(spreadsheet=url, data=df_final)
+    
+    # Aquí es donde el error ocurría. Vamos a usar el conector simple:
+    try:
+        conn = st.connection("gsheets", type="streamlit_gsheets.GSheetsConnection")
+        conn.update(spreadsheet=st.secrets["connections"]["gsheets"]["spreadsheet"], data=df_final)
+        return True
+    except Exception as e:
+        st.error(f"Error al guardar: {e}")
+        return False
 
-# --- EL RESTO DEL CÓDIGO SIGUE IGUAL ---
+# --- EL RESTO DE TU INTERFAZ (IGUAL A LA ANTERIOR) ---
 CATEGORIAS = ["🛒 Súper / Despensa", "🏠 Renta / Hipoteca", "⚡ Servicios", "🚗 Transporte", "🍕 Comida fuera", "💊 Salud", "🎓 Educación", "🛡️ Seguros", "🎈 Ocio", "🎁 Otros"]
 METODOS_PAGO = ["💳 Tarjeta de Crédito", "🏦 Tarjeta de Débito", "💵 Efectivo", "📱 Transferencia / App"]
 
-st.title("🏡 Finanzas en la Nube")
+st.title("🏡 Finanzas Familiares")
 
 with st.form("nuevo_gasto_form", clear_on_submit=True):
     col1, col2 = st.columns(2)
@@ -41,19 +54,15 @@ with st.form("nuevo_gasto_form", clear_on_submit=True):
     
     if st.form_submit_button("Registrar Gasto"):
         if monto > 0:
-            guardar_gasto(fecha, categoria, descripcion, monto, usuario, pago)
-            st.cache_data.clear() # Limpiar cache para ver el dato nuevo
-            st.balloons()
-            st.success("¡Guardado en Google Sheets!")
+            exito = guardar_gasto(fecha, categoria, descripcion, monto, usuario, pago)
+            if exito:
+                st.balloons()
+                st.success("¡Guardado!")
+        else:
+            st.warning("Escribe un monto válido.")
 
-# Mostrar datos
-try:
-    df = cargar_datos()
-    if not df.empty:
-        st.divider()
-        st.metric("Total Acumulado", f"${df['Monto'].sum():,.2f}")
-        st.subheader("Historial (Google Sheets)")
-        st.dataframe(df.sort_values(by="Fecha", ascending=False), use_container_width=True)
-except:
-    st.info("Conectando con la base de datos...")
-
+df = cargar_datos()
+if not df.empty:
+    st.divider()
+    st.metric("Total", f"${df['Monto'].sum():,.2f}")
+    st.dataframe(df.sort_values(by="Fecha", ascending=False), use_container_width=True)
