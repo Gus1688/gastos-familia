@@ -12,11 +12,11 @@ FORM_ID = "1FAIpQLSfowcz9hT3dckaDw_hJ2MRJ9eshXlM9QHXc9dbr_1hQk2yx5Q"
 
 # --- 2. LÍMITES MENSUALES (Ajusta los montos aquí) ---
 LIMITES = {
-    "🛒 Súper": 600.0,
-    "🏠 Renta": 1300.0,
+    "🛒 Súper": 1000.0,
+    "🏠 Hipoteca": 5600.0,
     "⚡ Servicios": 200.0,
     "🚗 Transporte": 150.0,
-    "🍕 Comida": 300.0,
+    "🍕 Comida": 1000.0,
     "🎁 Otros": 200.0
 }
 
@@ -122,3 +122,4 @@ try:
 
 except Exception as e:
     st.info("👋 ¡Hola Gustavo y Fabiola! Registren su primer gasto para activar las gráficas.")
+
