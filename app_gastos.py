@@ -21,7 +21,7 @@ LIMITES = {
     "🎓 Educación / Nido": 1000,
     " 🛡️ Seguros": 500.0,
     "🎈 Ocio / Entretenimiento": 500.0.
-    "🎁 Otros": 200.0
+    "🎁 Otros": 200.0,
 }
 
 READ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
@@ -126,5 +126,6 @@ try:
 
 except Exception as e:
     st.info("👋 ¡Hola Gustavo y Fabiola! Registren su primer gasto para activar las gráficas.")
+
 
 
