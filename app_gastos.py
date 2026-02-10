@@ -5,9 +5,8 @@ from datetime import datetime
 import plotly.express as px
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Finanzas G&F", page_icon="🏡", layout="wide")
+st.set_page_config(page_title="Finanzas Familiares G&F", page_icon="🏡", layout="wide")
 
-# CSS "DE ORO": Limpio, sin márgenes y con botones legibles
 st.markdown("""
     <style>
     .block-container {
@@ -19,13 +18,6 @@ st.markdown("""
     header {visibility: hidden;}
     footer {visibility: hidden;}
     #MainMenu {visibility: hidden;}
-    
-    /* Refuerzo para botones en móviles */
-    .stButton>button {
-        width: 100% !important;
-        height: 3em !important;
-        font-weight: bold !important;
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -73,14 +65,15 @@ with st.sidebar:
                 else: st.error("❌ Error")
 
 # --- 4. DASHBOARD PRINCIPAL ---
-st.title("🏡 Finanzas Familiares")
+st.title("🏡 Finanzas G&F")
 
 try:
     df = pd.read_csv(READ_URL)
     df.columns = ["Timestamp", "Fecha", "Categoría", "Descripción", "Monto", "Usuario", "Pago"]
-    df['Fecha'] = pd.to_datetime(df['Fecha'])
     
-    # --- FILTRO SUPERIOR DE TIEMPO ---
+    # LIMPIEZA DE FECHAS: Convertimos y quitamos la hora
+    df['Fecha'] = pd.to_datetime(df['Fecha']).dt.date
+    
     meses_nombres = {
         1: "Enero", 2: "Febrero", 3: "Marzo", 4: "Abril", 5: "Mayo", 6: "Junio",
         7: "Julio", 8: "Agosto", 9: "Septiembre", 10: "Octubre", 11: "Noviembre", 12: "Diciembre"
@@ -88,20 +81,24 @@ try:
     
     hoy = datetime.now()
     
-    # Selectores en una sola fila
+    # --- SELECTORES ---
     col_mes, col_anio = st.columns(2)
     with col_mes:
-        mes_sel = st.selectbox("📅 Mes a consultar", options=list(meses_nombres.keys()), 
+        mes_sel = st.selectbox("📅 Mes", options=list(meses_nombres.keys()), 
                                format_func=lambda x: meses_nombres[x], index=hoy.month-1)
     with col_anio:
-        anios_disponibles = sorted(df['Fecha'].dt.year.unique())
+        anios_disponibles = sorted(pd.to_datetime(df['Fecha']).dt.year.unique())
         if hoy.year not in anios_disponibles: anios_disponibles.append(hoy.year)
         anio_sel = st.selectbox("🗓️ Año", options=anios_disponibles, index=anios_disponibles.index(hoy.year))
 
-    # Filtrado Lógico
-    df_filtrado = df[(df['Fecha'].dt.month == mes_sel) & (df['Fecha'].dt.year == anio_sel)]
+    # Filtrado por mes y año seleccionado
+    df_filtrado = df[(pd.to_datetime(df['Fecha']).dt.month == mes_sel) & 
+                     (pd.to_datetime(df['Fecha']).dt.year == anio_sel)].copy()
     
-    # Métricas del mes seleccionado
+    # Formatear la columna fecha para que se vea bonita en la tabla (DD/MM/YYYY)
+    df_filtrado['Fecha'] = pd.to_datetime(df_filtrado['Fecha']).dt.strftime('%d-%m-%Y')
+
+    # Métricas
     gastado = df_filtrado["Monto"].sum()
     presupuesto = sum(LIMITES.values())
     disponible = presupuesto - gastado
@@ -115,7 +112,6 @@ try:
 
     st.divider()
 
-    # --- CUERPO VISUAL ---
     col_izq, col_der = st.columns([1, 1])
 
     with col_izq:
@@ -131,13 +127,15 @@ try:
         st.subheader("🍕 Distribución")
         if gastado > 0:
             fig = px.pie(df_filtrado, values='Monto', names='Categoría', hole=0.5)
-            fig.update_layout(margin=dict(t=0, b=0, l=0, r=0), showlegend=True)
+            fig.update_layout(margin=dict(t=0, b=0, l=0, r=0))
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info(f"Sin registros en {meses_nombres[mes_sel]}.")
+            st.info(f"Sin registros.")
 
     st.divider()
     st.subheader(f"📑 Movimientos de {meses_nombres[mes_sel]} {anio_sel}")
+    
+    # TABLA LIMPIA: Sin Timestamp y con fecha corta
     st.dataframe(
         df_filtrado.sort_values("Fecha", ascending=False).drop(columns=["Timestamp"]), 
         use_container_width=True, 
@@ -145,4 +143,4 @@ try:
     )
 
 except Exception as e:
-    st.info("👋 Inicia registrando un gasto o verifica la conexión con Sheets.")
+    st.info("👋 Registra un gasto para comenzar.")
