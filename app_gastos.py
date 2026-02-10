@@ -7,16 +7,20 @@ import plotly.express as px
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Finanzas G&F", page_icon="🏡", layout="wide")
 
+# CSS para mejorar la visibilidad del Sidebar en móvil
 st.markdown("""
     <style>
-    .block-container { padding-top: 1rem !important; }
+    /* Hace que el botón de la flecha del sidebar sea más visible en móviles */
+    [data-testid="stSidebarNav"] {margin-top: 2rem;}
+    .block-container { padding-top: 2rem !important; }
     header {visibility: hidden;}
     footer {visibility: hidden;}
-    /* Hacer que el botón de guardar sea verde y destaque */
-    div.stButton > button:first-child {
-        background-color: #28a745;
-        color: white;
-        border-radius: 10px;
+    
+    /* Estilo para el botón de guardar */
+    .stButton>button {
+        width: 100%;
+        border-radius: 5px;
+        font-weight: bold;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -64,27 +68,16 @@ if login():
             return response.status_code < 400
         except: return False
 
-    # --- 3. ENCABEZADO Y LOGOUT ---
-    col_t, col_l = st.columns([4, 1])
-    with col_t:
-        st.title("🏡 Finanzas G&F")
-    with col_l:
-        if st.button("Salir"):
-            st.session_state["autenticado"] = False
-            st.rerun()
-
-    # --- 4. FORMULARIO DE REGISTRO (AHORA EN EL CUERPO PRINCIPAL) ---
-    with st.expander("➕ REGISTRAR NUEVO GASTO", expanded=False):
+    # --- 3. REGRESO AL SIDEBAR (Módulo de Gastos) ---
+    with st.sidebar:
+        st.header("📝 Nuevo Gasto")
         with st.form("nuevo_gasto", clear_on_submit=True):
-            col1, col2 = st.columns(2)
-            with col1:
-                f = st.date_input("Fecha", datetime.now())
-                m = st.number_input("Monto ($)", min_value=0.0, step=1.0)
-                u = st.radio("¿Quién?", ["Gustavo", "Fabiola"], horizontal=True)
-            with col2:
-                c = st.selectbox("Categoría", list(LIMITES.keys()))
-                p = st.selectbox("Pago", ["💳 Crédito", "🏦 Débito", "💵 Efectivo", "📱 Transf."])
-                d = st.text_input("Nota")
+            f = st.date_input("Fecha", datetime.now())
+            m = st.number_input("Monto ($)", min_value=0.0, step=1.0)
+            c = st.selectbox("Categoría", list(LIMITES.keys()))
+            u = st.radio("¿Quién?", ["Gustavo", "Fabiola"], horizontal=True)
+            p = st.selectbox("Pago", ["💳 Crédito", "🏦 Débito", "💵 Efectivo", "📱 Transf."])
+            d = st.text_input("Nota")
             
             if st.form_submit_button("GUARDAR GASTO"):
                 if m > 0:
@@ -93,8 +86,15 @@ if login():
                         st.cache_data.clear()
                         st.rerun()
                     else: st.error("❌ Error")
+        
+        st.divider()
+        if st.button("Cerrar Sesión"):
+            st.session_state["autenticado"] = False
+            st.rerun()
 
-    # --- 5. DASHBOARD ---
+    # --- 4. CUERPO DEL DASHBOARD ---
+    st.title("🏡 Finanzas G&F")
+
     try:
         df = pd.read_csv(READ_URL)
         df.columns = ["Timestamp", "Fecha", "Categoría", "Descripción", "Monto", "Usuario", "Pago"]
@@ -106,20 +106,22 @@ if login():
         }
         
         hoy = datetime.now()
-        st.subheader("🗓️ Filtro de Mes")
-        c_mes, c_anio = st.columns(2)
-        with c_mes:
-            mes_sel = st.selectbox("Selecciona Mes", options=list(meses_nombres.keys()), 
+        
+        # Filtros Superiores
+        c1, c2 = st.columns(2)
+        with c1:
+            mes_sel = st.selectbox("📅 Mes", options=list(meses_nombres.keys()), 
                                    format_func=lambda x: meses_nombres[x], index=hoy.month-1)
-        with c_anio:
-            anios_disponibles = sorted(pd.to_datetime(df['Fecha']).dt.year.unique())
-            if hoy.year not in anios_disponibles: anios_disponibles.append(hoy.year)
-            anio_sel = st.selectbox("Selecciona Año", options=anios_disponibles, index=anios_disponibles.index(hoy.year))
+        with c2:
+            anios_dis = sorted(pd.to_datetime(df['Fecha']).dt.year.unique())
+            if hoy.year not in anios_dis: anios_dis.append(hoy.year)
+            anio_sel = st.selectbox("🗓️ Año", options=anios_dis, index=anios_dis.index(hoy.year))
 
         df_filtrado = df[(pd.to_datetime(df['Fecha']).dt.month == mes_sel) & 
                          (pd.to_datetime(df['Fecha']).dt.year == anio_sel)].copy()
         df_filtrado['Fecha'] = pd.to_datetime(df_filtrado['Fecha']).dt.strftime('%d-%m-%Y')
 
+        # Métricas
         gastado = df_filtrado["Monto"].sum()
         presupuesto = sum(LIMITES.values())
         disponible = presupuesto - gastado
@@ -130,6 +132,7 @@ if login():
         m3.metric("RESTANTE", f"${disponible:,.2f}", delta=f"${disponible:,.2f}")
 
         st.divider()
+        
         col_izq, col_der = st.columns([1, 1])
         with col_izq:
             st.subheader("📊 Por Categoría")
@@ -154,4 +157,4 @@ if login():
                      use_container_width=True, hide_index=True)
 
     except Exception as e:
-        st.info("👋 Registra tu primer gasto para ver el dashboard.")
+        st.info("👋 Registra un gasto en el panel lateral.")
