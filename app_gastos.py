@@ -143,3 +143,14 @@ try:
             fig.update_layout(
                 margin=dict(t=30, b=0, l=0, r=0),
                 paper_bgcolor='rgba(0,0,0,0)',
+                plot_bgcolor='rgba(0,0,0,0)',
+                font=dict(size=14)
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+    st.divider()
+    st.subheader("📑 Historial de Movimientos")
+    st.dataframe(df.sort_values("Fecha", ascending=False), use_container_width=True, hide_index=True)
+
+except Exception as e:
+    st.info("Cargando base de datos...")
