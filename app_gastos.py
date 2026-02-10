@@ -56,7 +56,7 @@ with st.sidebar:
         d = st.text_input("Nota")
         
         # Botón nativo (sin CSS forzado)
-        submit = st.form_submit_button("GUARDAR EN GOOGLE SHEETS")
+        submit = st.form_submit_button("GUARDAR GASTO")
         
         if submit:
             if m > 0:
@@ -118,3 +118,4 @@ try:
 
 except:
     st.info("👋 ¡Hola! Registra un gasto para comenzar.")
+
