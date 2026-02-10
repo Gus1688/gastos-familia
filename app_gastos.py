@@ -5,31 +5,7 @@ from datetime import datetime
 import plotly.express as px
 
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
-st.set_page_config(page_title="Finanzas Familiares G&F", page_icon="🏡", layout="wide")
-
-# --- NUEVO BLOQUE DE CSS PARA ELIMINAR MÁRGENES ---
-st.markdown("""
-    <style>
-    /* Eliminar márgenes laterales y superiores */
-    .block-container {
-        max-width: 100% !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        padding-top: 0rem !important;
-        padding-bottom: 0rem !important;
-    }
-    
-    /* Ocultar barra superior y menús para que parezca una app nativa */
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    #MainMenu {visibility: hidden;}
-
-    /* Ajuste para que los gráficos no tengan bordes blancos extra */
-    .stPlotlyChart {
-        margin-top: -20px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+st.set_page_config(page_title="Finanzas G&F", page_icon="🏡", layout="wide")
 
 # --- 2. CONFIGURACIÓN DE DATOS ---
 SHEET_ID = "1C923YPTM65pFZYS8qHtFkcVZYVNkAoZ455JkjZwpwU4" 
@@ -70,7 +46,8 @@ def enviar_a_google(fecha, cat, desc, monto, usuario, pago):
 # --- 3. SIDEBAR (REGISTRO) ---
 with st.sidebar:
     st.header("📝 Registro de Gasto")
-    with st.form("nuevo_gasto", clear_on_submit=True):
+    # Quitamos el 'clear_on_submit' para evitar saltos visuales extraños
+    with st.form("nuevo_gasto"):
         f = st.date_input("Fecha", datetime.now())
         m = st.number_input("Monto ($)", min_value=0.0, step=1.0)
         c = st.selectbox("Categoría", list(LIMITES.keys()))
@@ -78,6 +55,7 @@ with st.sidebar:
         p = st.selectbox("Pago", ["💳 Crédito", "🏦 Débito", "💵 Efectivo", "📱 Transf."])
         d = st.text_input("Nota")
         
+        # Botón nativo (sin CSS forzado)
         submit = st.form_submit_button("GUARDAR GASTO")
         
         if submit:
@@ -86,7 +64,6 @@ with st.sidebar:
                     st.success("✅ ¡Guardado!")
                     st.balloons()
                     st.cache_data.clear()
-                    st.rerun()
                 else:
                     st.error("❌ Error de envío")
             else:
@@ -107,12 +84,11 @@ try:
     presupuesto = sum(LIMITES.values())
     disponible = presupuesto - gastado
 
+    # MÉTRICAS ESTÁNDAR (Son legibles en cualquier modo)
     col1, col2, col3 = st.columns(3)
     col1.metric("GASTADO", f"${gastado:,.2f}")
     col2.metric("PRESUPUESTO", f"${presupuesto:,.2f}")
-    col3.metric("DISPONIBLE", f"${disponible:,.2f}", 
-                delta=f"${disponible:,.2f}", 
-                delta_color="normal" if disponible >= 0 else "inverse")
+    col3.metric("DISPONIBLE", f"${disponible:,.2f}", delta=f"${disponible}")
 
     st.divider()
 
@@ -131,19 +107,15 @@ try:
     with col_der:
         st.subheader("🍕 Distribución")
         if gastado > 0:
-            fig = px.pie(df_mes, values='Monto', names='Categoría', hole=0.5)
-            fig.update_layout(margin=dict(t=0, b=0, l=0, r=0))
+            fig = px.pie(df_mes, values='Monto', names='Categoría', hole=0.4)
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("Sin gastos este mes.")
+            st.info("No hay gastos registrados este mes.")
 
     st.divider()
     st.subheader("📑 Historial")
-    st.dataframe(
-        df.sort_values("Fecha", ascending=False).drop(columns=["Timestamp"]), 
-        use_container_width=True,
-        hide_index=True
-    )
+    st.dataframe(df.sort_values("Fecha", ascending=False), use_container_width=True)
 
-except Exception as e:
-    st.info("👋 Registra un gasto para comenzar.")
+except:
+    st.info("👋 ¡Hola! Registra un gasto para comenzar.")
+
