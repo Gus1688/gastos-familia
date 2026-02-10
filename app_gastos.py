@@ -32,11 +32,10 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 3. CONFIGURACIÓN DE IDs Y LÍMITES ACTUALIZADOS ---
+# --- 3. CONFIGURACIÓN DE IDs Y LÍMITES ---
 SHEET_ID = "1C923YPTM65pFZYS8qHtFkcVZYVNkAoZ455JkjZwpwU4" 
 FORM_ID = "1FAIpQLSfowcz9hT3dckaDw_hJ2MRJ9eshXlM9QHXc9dbr_1hQk2yx5Q"
 
-# Nuevas categorías y límites solicitados
 LIMITES = {
     "🎓 Educacion": 1500.0,
     "⚡ Servicios": 321.0,
@@ -51,7 +50,7 @@ LIMITES = {
     "🎁 Otros": 200.0
 }
 
-READ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx:out:csv"
+READ_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq?tqx=out:csv"
 SUBMIT_URL = f"https://forms.google.com/forms/d/e/{FORM_ID}/formResponse"
 
 def enviar_a_google(fecha, cat, desc, monto, usuario, pago):
@@ -94,6 +93,7 @@ with st.sidebar:
 st.title("🏡 Resumen Financiero Familiar")
 st.markdown(f"**Estado de cuenta:** {datetime.now().strftime('%B %Y')}")
 
+# Intentamos cargar los datos siempre al inicio
 try:
     df = pd.read_csv(READ_URL)
     df.columns = ["Timestamp", "Fecha", "Categoría", "Descripción", "Monto", "Usuario", "Pago"]
@@ -103,18 +103,15 @@ try:
     hoy = datetime.now()
     df_mes = df[(df['Fecha'].dt.month == hoy.month) & (df['Fecha'].dt.year == hoy.year)]
     
-    # --- MÉTRICAS DE BALANCE ---
+    # MÉTRICAS DE BALANCE
     total_gastado = df_mes["Monto"].sum()
     presupuesto_total = sum(LIMITES.values())
     balance_restante = presupuesto_total - total_gastado
-    porcentaje_consumido = (total_gastado / presupuesto_total) * 100
-
+    
     col1, col2, col3 = st.columns(3)
     col1.metric("Gasto Total", f"${total_gastado:,.2f}")
-    col2.metric("Límite Mensual", f"${presupuesto_total:,.2f}")
-    col3.metric("Balance Disponible", f"${balance_restante:,.2f}", 
-                delta=f"{100 - porcentaje_consumido:.1f}% libre",
-                delta_color="normal" if balance_restante > 0 else "inverse")
+    col2.metric("Presupuesto", f"${presupuesto_total:,.2f}")
+    col3.metric("Balance Disponible", f"${balance_restante:,.2f}")
 
     st.divider()
 
@@ -124,33 +121,29 @@ try:
     with c_izq:
         st.subheader("📊 Análisis por Categoría")
         gastos_cat = df_mes.groupby("Categoría")["Monto"].sum()
-        
         for cat, limite in LIMITES.items():
             gastado = gastos_cat.get(cat, 0)
             progreso = min(gastado / limite, 1.0)
-            
-            # Color dinámico
-            if progreso < 0.7: color_bar = "blue"
-            elif progreso < 1.0: color_bar = "orange"
-            else: color_bar = "red"
-            
             st.write(f"**{cat}** — ${gastado:,.2f} de ${limite:,.2f}")
             st.progress(progreso)
 
     with c_der:
         st.subheader("🍕 Distribución del Gasto")
         if total_gastado > 0:
-            fig = px.pie(df_mes, values='Monto', names='Categoría', 
-                         hole=0.5, color_discrete_sequence=px.colors.qualitative.Safe)
+            fig = px.pie(df_mes, values='Monto', names='Categoría', hole=0.5)
             fig.update_layout(margin=dict(t=0, b=0, l=0, r=0))
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.info("Registra gastos para ver el gráfico circular.")
+            st.info("Aún no hay gastos registrados este mes.")
 
     st.divider()
     st.subheader("📑 Últimos Movimientos")
     st.dataframe(df.sort_values("Fecha", ascending=False), use_container_width=True, hide_index=True)
 
 except Exception as e:
-    st.info("Inicia el registro para visualizar el balance mensual.")
-
+    # Si falla la lectura (hoja vacía), al menos mostramos el presupuesto vacío
+    st.warning("No se pudieron cargar datos históricos, pero puedes empezar a registrar.")
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Gasto Total", "$0.00")
+    m2.metric("Presupuesto", f"${sum(LIMITES.values()):,.2f}")
+    m3.metric("Balance Disponible", f"${sum(LIMITES.values()):,.2f}")
