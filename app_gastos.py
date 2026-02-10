@@ -77,9 +77,17 @@ def enviar_a_google(fecha, cat, desc, monto, usuario, pago):
     }
     try:
         response = requests.post(SUBMIT_URL, data=payload)
+        if response.status_code != 200:
+            st.error(f"Error de Google: {response.status_code}") # Esto te dirá si la URL falla
         return response.status_code == 200
-    except:
+    except Exception as e:
+        st.error(f"Error de conexión: {e}")
         return False
+    #try:
+        #response = requests.post(SUBMIT_URL, data=payload)
+        #return response.status_code == 200
+    #except:
+        #return False#
 
 # --- 4. BARRA LATERAL ---
 with st.sidebar:
@@ -154,3 +162,4 @@ try:
 
 except Exception as e:
     st.info("Cargando base de datos...")
+
