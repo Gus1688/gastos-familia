@@ -10,18 +10,26 @@ st.set_page_config(page_title="Finanzas G&F", page_icon="🏡", layout="wide")
 # CSS para mejorar la visibilidad del Sidebar en móvil
 st.markdown("""
     <style>
-    /* Hace que el botón de la flecha del sidebar sea más visible en móviles */
-    [data-testid="stSidebarNav"] {margin-top: 2rem;}
-    .block-container { padding-top: 2rem !important; }
+    /* 1. FORZAR QUE LA FLECHA DEL MENÚ SEA VISIBLE Y COLORIDA */
+    [data-testid="stSidebarCollapseButton"] {
+        background-color: #ff4b4b !important; /* Color rojo para que resalte */
+        color: white !important;
+        border-radius: 50% !important;
+        width: 40px !important;
+        height: 40px !important;
+        top: 10px !important;
+        left: 10px !important;
+        z-index: 999999 !important;
+        display: flex !important;
+    }
+
+    /* 2. Asegurar que el contenido no tape la flecha */
+    .block-container { 
+        padding-top: 3rem !important; 
+    }
+    
     header {visibility: hidden;}
     footer {visibility: hidden;}
-    
-    /* Estilo para el botón de guardar */
-    .stButton>button {
-        width: 100%;
-        border-radius: 5px;
-        font-weight: bold;
-    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -158,3 +166,4 @@ if login():
 
     except Exception as e:
         st.info("👋 Registra un gasto en el panel lateral.")
+
