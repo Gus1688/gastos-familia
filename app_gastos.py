@@ -7,48 +7,40 @@ import plotly.express as px
 # --- 1. CONFIGURACIÓN DE PÁGINA ---
 st.set_page_config(page_title="Finanzas Familiares", page_icon="🏡", layout="wide")
 
-# --- 2. ESTILO VISUAL REFORZADO (CONTRASTE ALTO) ---
+# --- 2. ESTILO VISUAL SIMPLIFICADO Y LEGIBLE ---
 st.markdown("""
     <style>
-    /* Fondo principal gris claro */
-    .stApp { 
-        background-color: #f8f9fa !important; 
+    /* Tarjetas de métricas con bordes definidos para que no se pierdan */
+    div[data-testid="stMetric"] {
+        border: 2px solid #4a5568 !important;
+        padding: 15px !important;
+        border-radius: 12px !important;
+        background-color: rgba(128, 128, 128, 0.05) !important;
     }
     
-    /* Forzar que los textos principales sean oscuros */
-    h1, h2, h3, p, b, span { 
-        color: #1a1a1a !important; 
-    }
-
-    /* Tarjetas de métricas con fondo blanco sólido y borde */
-    div[data-testid="stMetric"] {
-        background-color: #ffffff !important;
-        padding: 20px !important;
-        border-radius: 12px !important;
-        border: 1px solid #dee2e6 !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.05) !important;
-    }
-
-    /* Ajuste de etiquetas de métricas */
-    [data-testid="stMetricLabel"] {
-        color: #6c757d !important;
+    /* Forzar que el texto de las métricas sea siempre visible */
+    [data-testid="stMetricValue"] {
         font-weight: bold !important;
     }
 
-    /* Botón con color llamativo */
+    /* Botones con color sólido y texto blanco garantizado */
     .stButton>button {
         width: 100%;
-        background-color: #2b6cb0 !important;
-        color: white !important;
-        border-radius: 8px !important;
-        border: none !important;
-        height: 3em !important;
+        background-color: #3182ce !important;
+        color: #ffffff !important;
+        border: 2px solid #2b6cb0 !important;
+        font-weight: bold !important;
+        height: 3.5em !important;
+    }
+
+    /* Estilo para las barras de progreso */
+    .stProgress > div > div > div > div {
+        background-color: #3182ce !important;
     }
     
-    /* Sidebar con fondo un poco más oscuro para contraste */
-    [data-testid="stSidebar"] {
-        background-color: #ffffff !important;
-        border-right: 1px solid #dee2e6;
+    /* Títulos con margen para evitar amontonamiento */
+    h1, h2, h3 {
+        margin-bottom: 20px !important;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -91,25 +83,25 @@ def enviar_a_google(fecha, cat, desc, monto, usuario, pago):
 
 # --- 4. BARRA LATERAL ---
 with st.sidebar:
-    st.header("📝 Nuevo Registro")
+    st.header("📝 Registrar Gasto")
     with st.form("nuevo_gasto", clear_on_submit=True):
         f = st.date_input("Fecha", datetime.now())
         m = st.number_input("Monto ($)", min_value=0.0, step=1.0)
         c = st.selectbox("Categoría", list(LIMITES.keys()))
         u = st.radio("¿Quién?", ["Gustavo", "Fabiola"], horizontal=True)
-        p = st.selectbox("Pago", ["💳 Tarjeta Crédito", "🏦 Tarjeta Débito", "💵 Efectivo", "📱 Transferencia"])
-        d = st.text_input("Nota")
+        p = st.selectbox("Método de Pago", ["💳 Tarjeta Crédito", "🏦 Tarjeta Débito", "💵 Efectivo", "📱 Transferencia"])
+        d = st.text_input("Nota / Descripción")
         
-        if st.form_submit_button("Registrar Gasto"):
+        if st.form_submit_button("GUARDAR GASTO"):
             if m > 0:
                 if enviar_a_google(f, c, d, m, u, p):
                     st.balloons()
-                    st.success("¡Guardado!")
+                    st.success("¡Gasto Guardado!")
                     st.cache_data.clear()
                     st.rerun()
 
 # --- 5. CUERPO PRINCIPAL ---
-st.title("🏡 Resumen Financiero Familiar")
+st.title("🏡 Finanzas Gustavo & Fabiola")
 
 try:
     df = pd.read_csv(READ_URL)
@@ -123,36 +115,31 @@ try:
     presupuesto_total = sum(LIMITES.values())
     balance = presupuesto_total - total_gastado
     
-    # MÉTRICAS CON COLOR FORZADO
+    # MÉTRICAS
     m1, m2, m3 = st.columns(3)
-    m1.metric("Gasto Mes", f"${total_gastado:,.2f}")
-    m2.metric("Presupuesto", f"${presupuesto_total:,.2f}")
-    m3.metric("Balance Disponible", f"${balance:,.2f}")
+    m1.metric("Gasto Total Mes", f"${total_gastado:,.2f}")
+    m2.metric("Presupuesto Total", f"${presupuesto_total:,.2f}")
+    m3.metric("Balance Restante", f"${balance:,.2f}", delta=f"${balance}", delta_color="normal")
 
     st.divider()
 
     col_izq, col_der = st.columns([1.2, 1])
 
     with col_izq:
-        st.subheader("📊 Análisis por Categoría")
+        st.subheader("📊 Límites Mensuales")
         gastos_cat = df_mes.groupby("Categoría")["Monto"].sum()
         for cat, limite in LIMITES.items():
             gastado = gastos_cat.get(cat, 0)
             progreso = min(gastado / limite, 1.0)
-            st.write(f"**{cat}** — ${gastado:,.2f} de ${limite:,.2f}")
+            st.write(f"**{cat}**")
             st.progress(progreso)
+            st.caption(f"${gastado:,.2f} / ${limite:,.2f}")
 
     with col_der:
         st.subheader("🍕 Distribución")
         if total_gastado > 0:
-            fig = px.pie(df_mes, values='Monto', names='Categoría', hole=0.5)
-            fig.update_layout(margin=dict(t=30, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig, use_container_width=True)
-
-    st.divider()
-    st.subheader("📑 Últimos Movimientos")
-    st.dataframe(df.sort_values("Fecha", ascending=False), use_container_width=True, hide_index=True)
-
-except Exception as e:
-    st.info("Cargando sistema...")
-    st.metric("Balance Inicial", f"${sum(LIMITES.values()):,.2f}")
+            fig = px.pie(df_mes, values='Monto', names='Categoría', hole=0.5,
+                         color_discrete_sequence=px.colors.qualitative.Bold)
+            fig.update_layout(
+                margin=dict(t=30, b=0, l=0, r=0),
+                paper_bgcolor='rgba(0,0,0,0)',
