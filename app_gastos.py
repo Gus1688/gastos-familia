@@ -131,4 +131,28 @@ try:
 
     st.divider()
 
-    col_izq, col_
+    col_izq, col_der = st.columns([1.2, 1])
+
+    with col_izq:
+        st.subheader("📊 Análisis por Categoría")
+        gastos_cat = df_mes.groupby("Categoría")["Monto"].sum()
+        for cat, limite in LIMITES.items():
+            gastado = gastos_cat.get(cat, 0)
+            progreso = min(gastado / limite, 1.0)
+            st.write(f"**{cat}** — ${gastado:,.2f} de ${limite:,.2f}")
+            st.progress(progreso)
+
+    with col_der:
+        st.subheader("🍕 Distribución")
+        if total_gastado > 0:
+            fig = px.pie(df_mes, values='Monto', names='Categoría', hole=0.5)
+            fig.update_layout(margin=dict(t=30, b=0, l=0, r=0), paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig, use_container_width=True)
+
+    st.divider()
+    st.subheader("📑 Últimos Movimientos")
+    st.dataframe(df.sort_values("Fecha", ascending=False), use_container_width=True, hide_index=True)
+
+except Exception as e:
+    st.info("Cargando sistema...")
+    st.metric("Balance Inicial", f"${sum(LIMITES.values()):,.2f}")
