@@ -19,8 +19,8 @@ LIMITES = {
     "🍕 Salidas / Comida fuera": 1000.0,
     "💊 Salud / Farmacia": 300.0,
     "🎓 Educación / Nido": 1000,
-    " 🛡️ Seguros": 500.0,
-    "🎈 Ocio / Entretenimiento": 500.0.
+    "🛡️ Seguros": 500.0,
+    "🎈 Ocio / Entretenimiento": 500.0,
     "🎁 Otros": 200.0,
 }
 
@@ -126,6 +126,7 @@ try:
 
 except Exception as e:
     st.info("👋 ¡Hola Gustavo y Fabiola! Registren su primer gasto para activar las gráficas.")
+
 
 
 
